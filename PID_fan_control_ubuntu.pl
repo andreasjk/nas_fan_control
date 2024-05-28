@@ -281,7 +281,7 @@ $smartctl   = "/usr/sbin/smartctl";
 ## HD POLLING INTERVAL
 ## The controller will only poll the harddrives periodically. Since hard drives change temperature slowly
 ## this is a good thing. 180 seconds is a good value.
-$hd_polling_interval = 90;    # seconds
+$hd_polling_interval = 20;    # seconds
 
 ## FAN SPEED CHANGE DELAY TIME
 ## It takes the fans a few seconds to change speeds, we allow a grace before verifying. If we fail the verify
@@ -321,9 +321,11 @@ $last_cpu_temp = 0;
 use POSIX qw(strftime);
 use Time::Local;
 
-$SIG{INT} = sub { print "\nCaught SIGINT: setting fan mode to optimal\n"; set_fan_mode("optimal"); exit(0); };
-$SIG{TERM} = sub { print "\nCaught SIGTERM: setting fan mode to optimal\n"; set_fan_mode("optimal"); exit(0); };
-$SIG{HUP} = sub { print "\nCaught SIGHUP: setting fan mode to optimal\n"; set_fan_mode("optimal"); exit(0); };
+if ($simulate_fan_control == 0) {
+    $SIG{INT} = sub { print "\nCaught SIGINT: setting fan mode to optimal\n"; set_fan_mode("optimal"); exit(0); };
+    $SIG{TERM} = sub { print "\nCaught SIGTERM: setting fan mode to optimal\n"; set_fan_mode("optimal"); exit(0); };
+    $SIG{HUP} = sub { print "\nCaught SIGHUP: setting fan mode to optimal\n"; set_fan_mode("optimal"); exit(0); };
+}
 
 # start the controller
 main();
@@ -477,7 +479,7 @@ sub main
             $hd_fan_mode = get_fan_mode();
             printf(LOG "%6s", $hd_fan_mode);
 	    
-	    sleep 10; # pause 10s to allow fans to change speed after setting it
+	    #sleep 10; # pause 10s to allow fans to change speed after setting it
             $ave_fan_speed = get_fan_ave_speed(@hd_fan_list);
             printf(LOG "%6s", $ave_fan_speed);
             printf(LOG "%4i/%-3i", $hd_fan_duty_old, $hd_fan_duty);
@@ -589,8 +591,11 @@ sub get_hd_temps
     {
         my $disk_dev = "/dev/$item";
         my $command = "ssh 172.20.1.50 $smartctl -A $disk_dev | grep Temperature_Celsius";
+	dprint( 3, "$command\n" );
 
         my $output = `$command`;
+
+	dprint( 2, "$output");
 
         my @vals = split(" ", $output);
 
@@ -600,6 +605,8 @@ sub get_hd_temps
 
         if( $temp )
         {
+	    dprint( 1, "$disk_dev: $temp\n");
+
             push(@temp_list, $temp);
             $temp_sum += $temp;
             $HD_count +=1;
@@ -616,6 +623,8 @@ sub get_hd_temps
 	}
 
     my $ave_temp = $temp_sum / $hd_num_peak;
+
+    dprint(0, "HD Temperatures Min:$min_temp Max:$max_temp Avg:$ave_temp\n");
 
     return ($min_temp, $max_temp, $ave_temp, @temp_list);
 }
@@ -1005,11 +1014,12 @@ sub dprint
 {
     my ( $level,$output) = @_;
     
-#    print( "dprintf: debug = $debug, level = $level, output = \"$output\"\n" );
+    #    print( "dprintf: debug = $debug, level = $level, output = \"$output\"\n" );
     
     if( $debug > $level ) 
     {
         my $datestring = build_date_time_string();
+	print "$datestring: $output";
         print DEBUG_LOG "$datestring: $output";
     }
 

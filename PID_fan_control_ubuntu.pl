@@ -159,7 +159,7 @@ $debug_log = '/root/Debug_PID_fan_control.log';
 
 ## SIMULATE
 ## Set this to 1 to simulate how the fans would've been controlled
-$simulate_fan_control = 1;
+$simulate_fan_control = 0;
 
 
 ## SSH
@@ -896,6 +896,10 @@ sub calculate_hd_fan_duty_cycle_PID
     # my $hd_duty;
     
     my $temp_error_old = $hd_ave_temp_old - $hd_ave_target;
+    if ($hd_ave_temp_old == 0) {
+	$temp_error_old = 0;
+    }
+
     my $temp_error = $hd_ave_temp - $hd_ave_target;
 
     if ($hd_max_temp >= $hd_max_allowed_temp  ) 
@@ -1327,7 +1331,7 @@ sub get_fan_speed
         $fan_speed = -1;
 
     }
-    elsif( $fan_speed > 10000 || $fan_speed < 0 )
+    elsif( $fan_speed > 12000 || $fan_speed < 0 )
     {
         dprint( 0, "$fan_name Fan speed: $fan_speed RPM, is nonsensical\n");
         $fan_speed = -1;

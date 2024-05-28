@@ -154,7 +154,7 @@ $hd_fan_duty_start     = 60; # HD fan duty cycle when script starts
 ## DEBUG LEVEL
 ## 0 means no debugging. 1,2,3,4 provide more verbosity
 ## You should run this script in at least level 1 to verify its working correctly on your system
-$debug = 0;
+$debug = 2;
 $debug_log = '/root/Debug_PID_fan_control.log';
 
 ## LOG
@@ -166,9 +166,9 @@ $log_header_hourly_interval = 2; # number of hours between log headers.  Valid o
 
 ## CPU THRESHOLD TEMPS
 ## A modern CPU can heat up from 35C to 60C in a second or two. The fan duty cycle is set based on this
-$high_cpu_temp = 55;       # will go HIGH when we hit
-$med_cpu_temp  = 45;       # will go MEDIUM when we hit, or drop below again
-$low_cpu_temp  = 35;       # will go LOW when we fall below 35 again
+$high_cpu_temp = 78;       # will go HIGH when we hit
+$med_cpu_temp  = 65;       # will go MEDIUM when we hit, or drop below again
+$low_cpu_temp  = 55;       # will go LOW when we fall below 35 again
 
 ## HD THRESHOLD TEMPS
 ## HD change temperature slowly. 
@@ -176,7 +176,7 @@ $low_cpu_temp  = 35;       # will go LOW when we fall below 35 again
 ## more silent your system.
 ## Note, it is possible for your HDs to go above this... but if your cooling is good, they shouldn't.
 # $hd_ave_target = 38.0;   # define this value in the DEFAULT VALUES block at top of script
-$hd_max_allowed_temp = 40; # celsius. PID control aborts and fans set to 100% duty cycle when a HD hits this temp.
+$hd_max_allowed_temp = 45; # celsius. PID control aborts and fans set to 100% duty cycle when a HD hits this temp.
                            # This ensures that no matter how poorly chosen the PID gains are, or how much of a spread
                            # there is between the average HD temperature and the maximum HD temperature, the HD fans 
                            # will be set to 100% if any drive reaches this temperature.
@@ -188,16 +188,16 @@ $hd_num_peak = 4;        # average the temperatures of this many warmest hard dr
 ## when the CPU climbs above this temperature, the HD fans will be overridden
 ## this prevents the HD fans from spinning up when the CPU fans are capable of providing 
 ## sufficient cooling.
-$cpu_hd_override_temp = 65;
+$cpu_hd_override_temp = 80;
 
 ## CPU/HD SHARED COOLING
 ## If your HD fans contribute to the cooling of your CPU you should set this value.
 ## It will mean when you CPU heats up your HD fans will be turned up to help cool the
 ## case/cpu. This would only not apply if your HDs and fans are in a separate thermal compartment.
-$hd_fans_cool_cpu = 0;      # 1 if the hd fans should spin up to cool the cpu, 0 otherwise
+$hd_fans_cool_cpu = 1;      # 1 if the hd fans should spin up to cool the cpu, 0 otherwise
 
 ## HD FAN DUTY CYCLE TO OVERRIDE CPU FANS
-$cpu_fans_cool_hd            = 0;  # 1 if the CPU fans should spin up to cool the HDs, when needed.  0 otherwise.  This may be 
+$cpu_fans_cool_hd            = 1;  # 1 if the CPU fans should spin up to cool the HDs, when needed.  0 otherwise.  This may be 
                                    #   useful if the CPU fan zone also contains chassis exit fans, as an increase in chassis exit 
                                    #   fan speed may increase the HD cooling air flow.
 $hd_cpu_override_duty_cycle = 95;  # when the HD duty cycle equals or exceeds this value, the CPU fans may be overridden to help cool HDs
@@ -225,21 +225,21 @@ $cpu_temp_control = 1;  # 1 if the script will control a CPU fan to control CPU 
 ## You need to determine the actual max fan speeds that are achieved by the fans
 ## Connected to the cpu_fan_header and the hd_fan_header.
 ## These values are used to verify high/low fan speeds and trigger a BMC reset if necessary.
-$cpu_max_fan_speed    = 5600;
-$hd_max_fan_speed     = 1800;
+$cpu_max_fan_speed    = 10000;
+$hd_max_fan_speed     = 10000;
 
 
 ## CPU FAN DUTY LEVELS
 ## These levels are used to control the CPU fans
 $fan_duty_high         = 100;    # percentage on, ie 100% is full speed.
-$fan_duty_med          =  60;
-$fan_duty_low          =  20;
+$fan_duty_med          =  40;
+$fan_duty_low          =  30;
 
 ## HD FAN DUTY LEVELS
 ## These levels are used to control the HD fans
 $hd_fan_duty_high      = 100;    # percentage on, ie 100% is full speed.
-$hd_fan_duty_med_high  =  80;
-$hd_fan_duty_med_low   =  50;
+$hd_fan_duty_med_high  =  60;
+$hd_fan_duty_med_low   =  40;
 $hd_fan_duty_low       =  20;    # some 120mm fans stall below 30.
 #$hd_fan_duty_start    =  60;    # HD fan duty cycle when script starts - defined in config file
 
@@ -251,17 +251,17 @@ $hd_fan_duty_low       =  20;    # some 120mm fans stall below 30.
 #
 # 0 = FAN1..5
 # 1 = FANA..FANC
-$cpu_fan_zone = 1;
-$hd_fan_zone  = 0;
+$cpu_fan_zone = 0;
+$hd_fan_zone  = 1;
 
 
 ## FAN HEADERS
 ## these are the fan headers which are used to verify the fan zone is high. FAN1+ are all in Zone 0, FANA is Zone 1.
 ## cpu_fan_header should be in the cpu_fan_zone
 ## hd_fan_header should be in the hd_fan_zone
-$cpu_fan_header = "FANA";                 # used for printing to standard output for debugging   
-$hd_fan_header  = "FAN2";                 # used for printing to standard output for debugging   
-@hd_fan_list = ("FAN2", "FAN3");  # used for logging to file  
+$cpu_fan_header = "FAN1";                 # used for printing to standard output for debugging   
+$hd_fan_header  = "FANA";                 # used for printing to standard output for debugging   
+@hd_fan_list = ("FANA", "FANB");  # used for logging to file  
 
 
 ################
@@ -525,7 +525,7 @@ sub get_hd_list_TN
 
 sub get_hd_list
 {
-    my $disk_list = `lsblk | grep disk | grep -v 465 | grep -v zd | cut -c 1-3`;
+    my $disk_list = `ssh 172.20.1.50 lsblk | grep disk | grep -v 465 | grep -v zd | cut -c 1-3`;
     dprint(3,"$disk_list\n");
 
     my @vals = split(" ", $disk_list);
@@ -545,7 +545,7 @@ sub get_hd_temp
     foreach my $item (@hd_list)
     {
         my $disk_dev = "/dev/$item";
-        my $command = "$smartctl -A $disk_dev | grep Temperature_Celsius";
+        my $command = "ssh 172.20.1.50 $smartctl -A $disk_dev | grep Temperature_Celsius";
          
         dprint( 3, "$command\n" );
         
@@ -584,7 +584,7 @@ sub get_hd_temps
     foreach my $item (@hd_list)
     {
         my $disk_dev = "/dev/$item";
-        my $command = "$smartctl -A $disk_dev | grep Temperature_Celsius";
+        my $command = "ssh 172.20.1.50 $smartctl -A $disk_dev | grep Temperature_Celsius";
 
         my $output = `$command`;
 
@@ -1079,7 +1079,7 @@ sub set_fan_mode
 }    
 
 # reads CPU temp from output of `sensors`
-sub get_cpu_temp_sensors
+sub get_cpu_temp_sensors_orig
 {
     my $cpu_temp = `$sensors coretemp-isa-0000 | egrep -E "Package id 0" | awk '{print \$4}' | cut -c 2-5 `;
     chomp $cpu_temp;
@@ -1088,6 +1088,41 @@ sub get_cpu_temp_sensors
 
     $last_cpu_temp = $cpu_temp; # note, this hasn't been cleaned.
     return $cpu_temp;
+}
+
+# returns the maximum core temperature from the kernel to determine CPU temperature.
+# in my testing I found that the max core temperature was pretty much the same as the IPMI 'CPU Temp'
+# value, but its much quicker to read, and doesn't require X10 IPMI. And works when the IPMI is rebooting too.
+sub get_cpu_temp_sensors
+{
+    # the following command needs to return a list of temps for the cores, output is something like "50.0\n51.0\n"
+    my $core_temps = `sensors -A | egrep 'Core [0-9]+:' | awk '{print \$3}' | sed 's/[^0-9\.]*//g'`;
+
+    chomp($core_temps);
+
+    dprint(3,"core_temps:\n$core_temps\n");
+
+    my @core_temps_list = split(" ", $core_temps);
+    
+    dprint_list( 4, "core_temps_list", @core_temps_list );
+
+    my $max_core_temp = 0;
+    
+    foreach my $core_temp (@core_temps_list)
+    {
+        if( $core_temp )
+        {
+            dprint( 2, "core_temp = $core_temp C\n");
+            
+            $max_core_temp = $core_temp if $core_temp > $max_core_temp;
+        }
+    }
+
+    dprint(1, "CPU Temp: $max_core_temp\n");
+
+    $last_cpu_temp = $max_core_temp; #possible that this is 0 if there was a fault reading the core temps
+
+    return $max_core_temp;
 }
 
 sub decide_cpu_fan_level
@@ -1301,7 +1336,7 @@ sub read_config
         $Kd = $config_Kd // $default_Kd;
         $hd_num_peak = $config_num_disks // $default_hd_num_peak;            
         $hd_fan_duty_start = $config_hd_fan_start // $default_hd_fan_duty_start;
-	$config_time = (stat($config_file))[9];
+        $config_time = (stat($config_file))[9];
     } else {
         dprint( 0, "Config file not found.  Using default values!\n");
         $hd_ave_target = $default_hd_ave_target;
@@ -1310,7 +1345,7 @@ sub read_config
         $Kd = $default_Kd;
         $hd_num_peak = $default_hd_num_peak;            
         $hd_fan_duty_start = $default_hd_fan_duty_start;
-	print "config file not found\n";
+        print "config file not found\n";
     }
     return ($hd_ave_target, $Kp, $Ki, $Kd, $hd_num_peak, $hd_fan_duty_start, $config_time);
 }

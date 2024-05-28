@@ -161,6 +161,10 @@ $debug_log = '/root/Debug_PID_fan_control.log';
 ## Set this to 1 to simulate how the fans would've been controlled
 $simulate_fan_control = 1;
 
+
+## SSH
+$ssh_hd = 'ssh 172.20.1.50 -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no ';
+
 ## LOG
 $log = '/root/PID_fan_control.log';
 $log_temp_summary_only      = 0; # 1 if not logging individual HD temperatures.  0 if logging temp of each HD
@@ -531,7 +535,7 @@ sub get_hd_list_TN
 
 sub get_hd_list
 {
-    my $disk_list = `ssh 172.20.1.50 lsblk | grep disk | grep -v 465 | grep -v zd | cut -c 1-3`;
+    my $disk_list = `$ssh_hd lsblk | grep disk | grep -v 465 | grep -v zd | cut -c 1-3`;
     dprint(3,"$disk_list\n");
 
     my @vals = split(" ", $disk_list);
@@ -551,7 +555,7 @@ sub get_hd_temp
     foreach my $item (@hd_list)
     {
         my $disk_dev = "/dev/$item";
-        my $command = "ssh 172.20.1.50 $smartctl -A $disk_dev | grep Temperature_Celsius";
+        my $command = "$ssh_hd $smartctl -A $disk_dev | grep Temperature_Celsius";
          
         dprint( 3, "$command\n" );
         
@@ -590,7 +594,7 @@ sub get_hd_temps
     foreach my $item (@hd_list)
     {
         my $disk_dev = "/dev/$item";
-        my $command = "ssh 172.20.1.50 $smartctl -A $disk_dev | grep Temperature_Celsius";
+        my $command = "$ssh_hd $smartctl -A $disk_dev | grep Temperature_Celsius";
 	dprint( 3, "$command\n" );
 
         my $output = `$command`;
@@ -886,7 +890,7 @@ sub calculate_hd_fan_duty_cycle_PID
         $hd_duty = $hd_fan_duty_high;
         dprint(0, "Drives are too hot, going to $hd_fan_duty_high%\n") unless $old_hd_duty == $hd_duty;
      }
-    elsif ($hd_max_temp >= 0 )
+    elsif ($hd_max_temp > 0 )
     {
         my $temp_error = $hd_ave_temp - $hd_ave_target;
         $integral += $temp_error * $hd_polling_interval / 60;
@@ -915,8 +919,8 @@ sub calculate_hd_fan_duty_cycle_PID
     }
     else
     {
-        $hd_duty = 100;
-        dprint( 0, "Drive temperature ($hd_temp) invalid. going to 100%\n");
+        $hd_duty = 60;
+        dprint( 0, "Drive temperature ($hd_temp) invalid. going to 60%\n");
     }
     
     $hd_ave_temp_old = $hd_ave_temp;

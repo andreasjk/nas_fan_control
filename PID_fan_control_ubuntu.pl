@@ -149,7 +149,7 @@ $Kp = 16/3;                  # PID control loop proportional gain
 $Ki = 0;                     # PID control loop integral gain
 $Kd = 24;                    # PID control loop derivative gain
 $hd_num_peak = 2;            # Number of warmest HDs to use when calculating average temp
-$hd_fan_duty_start     = 60; # HD fan duty cycle when script starts
+$hd_fan_duty_start     = 40; # HD fan duty cycle when script starts
 
 ## DEBUG LEVEL
 ## 0 means no debugging. 1,2,3,4 provide more verbosity
@@ -285,7 +285,7 @@ $smartctl   = "/usr/sbin/smartctl";
 ## HD POLLING INTERVAL
 ## The controller will only poll the harddrives periodically. Since hard drives change temperature slowly
 ## this is a good thing. 180 seconds is a good value.
-$hd_polling_interval = 20;    # seconds
+$hd_polling_interval = 90;    # seconds
 
 ## FAN SPEED CHANGE DELAY TIME
 ## It takes the fans a few seconds to change speeds, we allow a grace before verifying. If we fail the verify
@@ -595,12 +595,12 @@ sub get_hd_temps
     foreach my $item (@hd_list)
     {
         my $disk_dev = "/dev/$item";
-        my $cmd = "$smartctl -A $disk_dev | grep Temperature_Celsius";
+        my $cmd = "echo \"\`$smartctl -A $disk_dev | grep Temperature_Celsius\` 0\"";
         push(@smartctl_list, $cmd);
     }
 
     my $smartctl_string = join(";", @smartctl_list);
-    my $command = "$ssh_hd \"$smartctl_string\"";
+    my $command = "$ssh_hd '$smartctl_string'";
     dprint( 3, "$command\n" );
     my $output = `$command`;
     dprint( 2, "$output");
@@ -625,6 +625,11 @@ sub get_hd_temps
             $max_temp = $temp if $temp > $max_temp;
             $min_temp = $temp if $temp < $min_temp;
         }
+	else {
+	    dprint( 1, "$disk_dev: 00\n");
+
+            push(@temp_list, "00");
+	}
     }
 
     my @temps_sorted = sort { $a <=> $b } @temp_list;

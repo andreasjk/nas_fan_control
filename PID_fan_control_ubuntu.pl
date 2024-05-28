@@ -591,17 +591,25 @@ sub get_hd_temps
     my $HD_count = 0;
     my @temp_list = ();
 
+    my @smartctl_list = ();
     foreach my $item (@hd_list)
     {
         my $disk_dev = "/dev/$item";
-        my $command = "$ssh_hd $smartctl -A $disk_dev | grep Temperature_Celsius";
-	dprint( 3, "$command\n" );
+        my $cmd = "$smartctl -A $disk_dev | grep Temperature_Celsius";
+        push(@smartctl_list, $cmd);
+    }
 
-        my $output = `$command`;
+    my $smartctl_string = join(" && ", @smartctl_list);
+    my $command = "$ssh_hd $smartctl_string"
+    dprint( 3, "$command\n" );
+    my $output = `$command`;
+    dprint( 2, "$output");
 
-	dprint( 2, "$output");
+    my @lines = split("\n", $output);
 
-        my @vals = split(" ", $output);
+    foreach my $line (@lines)
+    {
+        my @vals = split(" ", $line);
 
         # grab 10th item from the output, which is the hard drive temperature (on Seagate NAS HDs)
         my $temp = "$vals[9]";

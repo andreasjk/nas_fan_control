@@ -157,6 +157,10 @@ $hd_fan_duty_start     = 60; # HD fan duty cycle when script starts
 $debug = 2;
 $debug_log = '/root/Debug_PID_fan_control.log';
 
+## SIMULATE
+## Set this to 1 to simulate how the fans would've been controlled
+$simulate_fan_control = 1;
+
 ## LOG
 $log = '/root/PID_fan_control.log';
 $log_temp_summary_only      = 0; # 1 if not logging individual HD temperatures.  0 if logging temp of each HD
@@ -1071,7 +1075,11 @@ sub set_fan_mode
     my $mode = get_fan_mode_code( $fan_mode );
 
     dprint( 1, "Setting fan mode to $mode ($fan_mode)\n");
-    `$ipmitool raw 0x30 0x45 0x01 $mode`;
+    if ($simulate_fan_control == 1) {
+        dprint( 0, "$ipmitool raw 0x30 0x45 0x01 $mode\n");
+    } else {
+        `$ipmitool raw 0x30 0x45 0x01 $mode`;
+    }
 
     sleep 5;    #need to give the BMC some breathing room
 
@@ -1215,7 +1223,11 @@ sub set_fan_zone_duty_cycle
         
     dprint( 1, "Setting Zone $zone duty cycle to $duty%\n");
 
-    `$ipmitool raw 0x30 0x70 0x66 0x01 $zone $duty`;
+    if ($simulate_fan_control == 1) {
+        dprint( 0, "$ipmitool raw 0x30 0x70 0x66 0x01 $zone $duty\n");
+    } else {
+        `$ipmitool raw 0x30 0x70 0x66 0x01 $zone $duty`;
+    }
     
     return;
 }

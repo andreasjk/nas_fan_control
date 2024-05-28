@@ -163,7 +163,7 @@ $simulate_fan_control = 1;
 
 
 ## SSH
-$ssh_hd = 'ssh 172.20.1.50 -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no ';
+$ssh_hd = 'ssh 172.20.1.50 -o ConnectTimeout=5 -o BatchMode=yes -o StrictHostKeyChecking=no';
 
 ## LOG
 $log = '/root/PID_fan_control.log';
@@ -599,8 +599,8 @@ sub get_hd_temps
         push(@smartctl_list, $cmd);
     }
 
-    my $smartctl_string = join(" && ", @smartctl_list);
-    my $command = "$ssh_hd $smartctl_string"
+    my $smartctl_string = join(";", @smartctl_list);
+    my $command = "$ssh_hd \"$smartctl_string\"";
     dprint( 3, "$command\n" );
     my $output = `$command`;
     dprint( 2, "$output");
@@ -636,7 +636,7 @@ sub get_hd_temps
 
     my $ave_temp = $temp_sum / $hd_num_peak;
 
-    dprint(0, "HD Temperatures Min:$min_temp Max:$max_temp Avg:$ave_temp\n");
+    dprint(0, "HD Temp Count:$HD_count Min:$min_temp Max:$max_temp Top $hd_num_peak avg:$ave_temp\n");
 
     return ($min_temp, $max_temp, $ave_temp, @temp_list);
 }
@@ -1130,11 +1130,11 @@ sub get_cpu_temp_sensors
 
     chomp($core_temps);
 
-    dprint(3,"core_temps:\n$core_temps\n");
+    dprint(5,"core_temps:\n$core_temps\n");
 
     my @core_temps_list = split(" ", $core_temps);
     
-    dprint_list( 4, "core_temps_list", @core_temps_list );
+    dprint_list( 5, "core_temps_list", @core_temps_list );
 
     my $max_core_temp = 0;
     
@@ -1142,7 +1142,7 @@ sub get_cpu_temp_sensors
     {
         if( $core_temp )
         {
-            dprint( 2, "core_temp = $core_temp C\n");
+            dprint( 5, "core_temp = $core_temp C\n");
             
             $max_core_temp = $core_temp if $core_temp > $max_core_temp;
         }
